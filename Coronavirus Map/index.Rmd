@@ -14,32 +14,40 @@ library(googlesheets4)
 library(opencage)
 library(stargazer)
 
-raw <- read_sheet('https://docs.google.com/spreadsheets/d/1yZv9w9zRKwrGTaR-YzmAqMefw4wMlaXocejdxZaTs6w/pubhtml')
-df <- raw %>% 
-  select(-'Last Update', City = `Province/State`, Country = `Country/Region`) %>% 
-  mutate(Locale = if_else(is.na(City), Country, City))
+raw <- read_sheet('https://docs.google.com/spreadsheets/d/1UF2pSkFTURko2OvfHWWlFpDFAr1UxCBA4JLwlSP6KFo/')
+df <- raw[,1:6]
+colnames(df)[6] <- 'Confirmed'
 
-getCoords <- function(cityName)
-{
-  a <- opencage_forward(place = cityName, key = 'f1898f9c83ce48f68e522e01957384de')
-  lat <- a$results[1,][1] %>% gsub('°', '', .) %>% gsub("'", '', .) %>% str_split(' ') %>% unlist()
-  lat[4] <- ifelse(lat[4] == 'N', 1, -1)
-  lon <- a$results[1,][2] %>% gsub('°', '', .) %>% gsub("'", '', .) %>% str_split(' ') %>% unlist()
-  lon[4] <- ifelse(lon[4] == 'N', 1, -1)
-  lat <- lat %>% as.numeric()
-  lon <- lon %>% as.numeric()
-  lat <- lat[1] + lat[2]/60 + lat[3]/3600 * lat[4]
-  lon <- lon[1] + lon[2]/60 + lon[3]/3600 * lon[4]
-  c(lon, lat)
-}
-
-lox <- sapply(df$Locale, getCoords)
-df$lat <- lox[2,]
-df$lon <- lox[1,]
-
+df <- df %>% filter(!is.na(Confirmed))
 m <- leaflet(data = df) %>%
   addTiles() %>%
-  addCircleMarkers(radius = ~log(Confirmed), popup = ~Locale, popupOptions = )
+  addCircleMarkers(radius = ~log(Confirmed), popup = ~'Province/State')
+
+# df <- raw %>% 
+#   select(-'Last Update (UTC)', City = `Province/State`, Country = `Country/Region`) %>% 
+#   mutate(Locale = if_else(is.na(City), Country, City))
+# 
+# getCoords <- function(cityName)
+# {
+#   a <- opencage_forward(place = cityName, key = 'f1898f9c83ce48f68e522e01957384de')
+#   lat <- a$results[1,][1] %>% gsub('°', '', .) %>% gsub("'", '', .) %>% str_split(' ') %>% unlist()
+#   lat[4] <- ifelse(lat[4] == 'N', 1, -1)
+#   lon <- a$results[1,][2] %>% gsub('°', '', .) %>% gsub("'", '', .) %>% str_split(' ') %>% unlist()
+#   lon[4] <- ifelse(lon[4] == 'N', 1, -1)
+#   lat <- lat %>% as.numeric()
+#   lon <- lon %>% as.numeric()
+#   lat <- lat[1] + lat[2]/60 + lat[3]/3600 * lat[4]
+#   lon <- lon[1] + lon[2]/60 + lon[3]/3600 * lon[4]
+#   c(lon, lat)
+# }
+# 
+# lox <- sapply(df$Locale, getCoords)
+# df$lat <- lox[2,]
+# df$lon <- lox[1,]
+# 
+# m <- leaflet(data = df) %>%
+#   addTiles() %>%
+#   addCircleMarkers(radius = ~log(Confirmed), popup = ~Locale, popupOptions = )
 
 
 ```

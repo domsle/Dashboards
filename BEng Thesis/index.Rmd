@@ -108,7 +108,7 @@ Column {data-width=500}
 
 ### **This webpage is a summary of my Bachelor of Engineering Thesis.**
 
-*If you would like to see plots, just go to the next page. Otherwise, this is a short introduction so this can be understood in a glimpse.*
+**If you would like to see plots, just go to the next page. Otherwise, this is a short introduction so this can be understood in a glimpse.**
 
 The point of my thesis was to build a magnetic field sensors that uses an optical fibre. This was accomplished by building different types of interferometers, with ferrofluid reacting with magnetic field. 
 
@@ -116,30 +116,34 @@ The sensor with a ferrofluid-filled capillary described in this paper has not be
 
 ### Interference:
 
-When two waves of light meet each other, and their lenghts match, they can add or substract from each other. This is called interference. This act can happen for a whole range of wavelengths. In our case, the light can interfere when it is inside of a capillary.
+  When two waves of light meet each other, and their lengths match, they can add or subtract from each other. This is called interference. This act will be used to detect changes in optical properties of a fluid - which is dependent on the magnetic field. The interference can also happen for a whole range of wavelengths a the same time. In our case, the light can interfere when it is inside of a *capillary*.
 
 ### Used items:
 
-A *cappilary*, or "no core fibre" is just a tiny little pipe, made our of glass. It has a small hole inside, and we assume that it's inside and outside circumference is always of the same size.
+  A *cappilary*, or "no core fibre" is just a tiny and very thin glass tube. It has a small hole inside, and we can put a liquid inside of it.
 
-A *ferrofluid* is a fluid, filled with tiny particled that react with magnetic field. That way, we can change the most important property - the angle by which light gets reflected - using magnetic field. In my study, I tested two ferrofluids made by Ferrotec company.
+  A *ferrofluid* is a fluid, filled with tiny particles that react with magnetic field. That way, we can change the most important property - the angle by which light gets reflected - using magnetic field. In my study, I tested two ferrofluids made by Ferrotec company.
+  
+  Unfortunately the lasers that I have used are not to be seen by human eye. Fortunately, I can still shine red light through elements that I've build.
+
+
 
 Column {data-width=500}
 -----------------------------------------------------------------------
 
 ### The princible - summing up:
 
-By placing a cappilary in a ferrofluid, we can alter its optical property using magnetic field. That way, and adding that each wavelength refracts at a slightly different angle, we can measure changes made to a wide spectrum of light by a  
+By placing a cappilary in a ferrofluid, we can alter its optical property using magnetic field. That way, and adding that each wavelength refracts at a slightly different angle, we can measure changes of the amount of  light that gets through our measuring element.  
 
 
 
-1st Sensor Type
+Type I
 ===================================== 
 
 Column {data-width=700}
 -----------------------------------------------------------------------
 
-### Base plot - whole range of wavelengths, each series has magnetic induction increased:
+### Whole range of wavelengths, each next series have greater magnetic induction:
 
 ```{r}
 whole1 <- first.df %>%
@@ -201,8 +205,12 @@ side2 <- ggplot(data = finals1) +
 ggplotly(side2) %>% config(displayModeBar = F) 
 ```
 
-2st Sensor Type
+Type II
 ===================================== 
+
+Column {data-width=600}
+-----------------------------------------------------------------------
+
 
 ```{r}
 many.plots <- many.data %>%
@@ -217,3 +225,5 @@ ggplotly(many.plots) %>% config(displayModeBar = F)
 
 ```
 
+Column {data-width=400}
+-----------------------------------------------------------------------
