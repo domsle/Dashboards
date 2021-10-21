@@ -5,7 +5,7 @@ output:
     theme: readable
     orientation: columns
     vertical_layout: fill
-    self_contained: false
+    self_contained: true
     lib_dir: rmarkdown_files
 ---
 
@@ -14,45 +14,60 @@ library(flexdashboard)
 library(tidyverse)
 library(stringr)
 library(plotly)
+library(echarts4r)
+library(vroom)
+library(here)
 
+# here::i_am('BEng Thesis')
 
 readOneFile <- function(fileName) {
-  x <- file(fileName, "r")
-  for (i in 1:300) {
-    line <- readLines(x, 1)
-    if (line=="\"[TRACE DATA]\"") {
-      close(x)
-      rm(x)
-      x = i
-      break()
-    }
-  }
-  df <- read.csv(fileName, header = TRUE, skip = x)
+  x <- file(fileName, "r") 
+  toSkip <- (readLines(fileName, 300) == "\"[TRACE DATA]\"") %>% 
+    which() %>% 
+    .[1]
+  
+  df <- read_csv(fileName, skip = toSkip)
   colnames(df) <- colnames(df) %>% 
     gsub('Tr.', '', .) %>% 
     gsub('WL.', 'WL', .) %>% 
-    gsub('..LOG.', '', .)
-  df <- reshape(data = df, 
-                varying = colnames(df), 
-                timevar = 'var',
-                times=c('A','B','C','D','E','F','G'),
-                v.names = c('WL', 'LEVEL'),
-                direction = 'long') 
-  df$var <- sapply(df$var, utf8ToInt) %>% unlist() - 64
-  # print(colnames(df))
-  return(tibble(df))
+    gsub('..LOG.', '', .) %>% 
+    gsub('\\(', '.', .)
+  
+  # Too lazy to figure out one line
+  imap_dfr(((1:(ncol(df) / 2) - 1) * 2 + 1), function(x, y) {
+    
+    df[,x:(x+1)] %>% 
+      mutate(i = y) %>% 
+      setNames(c('wl', 'level', 'var'))
+  })
+  # 
+  # df <- reshape(data = df, 
+  #               varying = colnames(df), 
+  #               timevar = 'var',
+  #               times=c('A','B','C','D','E','F','G'),
+  #               v.names = c('WL', 'LEVEL'),
+  #               direction = 'long') 
+  # df$var <- sapply(df$var, utf8ToInt) %>% unlist() - 64
+  # print(colnames(df)) 
+  # dd
 }
 
-joinData <- function(tibbles, plot.name) {
-  x = 0
-  for (i in 1:length(tibbles)) {
-    crntMax<- tibbles[[i]] %>% group_by(var) %>% count() %>% .$var %>% max
-    tibbles[[i]]$var <- tibbles[[i]]$var + x
-    x <- x + crntMax
-  }
-  returned <- bind_rows(tibbles) %>% select(var, WL, LEVEL) %>% mutate(name = plot.name)
-  colnames(returned) <- c('var', 'level', 'wl', 'Series')
-  returned
+joinData <- function(tibbles) {
+  # x = 0
+  tibbles %>% 
+    imap_dfr(function(tibb, i) {
+      tibb %>% mutate(var = var + ((i - 1 )* 7))
+    }) 
+    
+    
+  # for (i in 1:length(tibbles)) {
+  #   crntMax<- tibbles[[i]] %>% count(var) %>% .$var %>% max
+  #   tibbles[[i]]$var <- tibbles[[i]]$var + x
+  #   x <- x + crntMax
+  # }
+  # returned <- bind_rows(tibbles) %>% select(var, WL, LEVEL) %>% mutate(name = plot.name)
+  # colnames(returned) <- c('var', 'level', 'wl', 'Series')
+  # returned
 }
 
 cal <- function(x) {
@@ -64,40 +79,76 @@ cal <- function(x) {
   }
 
 # First page:
-finals1 <- readRDS('OSA/A3x_Kapilara 3um 35mm zmoczona APG E26/peaks_data.rds')
+finals1 <- readRDS(here('BEng Thesis/OSA/A3x_Kapilara 3um 35mm zmoczona APG E26/peaks_data.rds'))
 finals1$mag <- cal(finals1$caps)
 finals1 <- finals1 %>% mutate(delta = wl - min(wl))
 finals1.lm <- finals1 %>% filter(mag < 260) 
 
-setwd("/home/dominik/Programowanie/R/SmallPortfolioProjects/BEngThesis/OSA/A3x_Kapilara 3um 35mm zmoczona APG E26/")
-first.df <- list.files() %>% str_subset(".*.CSV") %>% sapply(readOneFile) %>% 
-  joinData('3um 35mm, ferrofluid outside')
+
+# setwd("/home/dominik/Programowanie/R/Dashboards/BEng Thesis/OSA/A3x_Kapilara 3um 35mm zmoczona APG E26/")
+# '3um 35mm, ferrofluid outside'
+first.df <- here('BEng Thesis', 'OSA', 'A3x_Kapilara 3um 35mm zmoczona APG E26') %>% 
+  list.files(full.names = TRUE, pattern = ".*.CSV") %>%
+  # str_subset(".*.CSV") %>% 
+  map(readOneFile) %>% 
+  joinData()
 first.df$var = factor(first.df$var)
 
 #
-setwd("/home/dominik/Programowanie/R/SmallPortfolioProjects/BEngThesis/OSA/1um/A000-2_EHF-1 1µm 72mm")
-d1 <- list.files() %>% str_subset(".*.CSV") %>% sapply(readOneFile) %>% 
-  joinData('EHF-1 1µm 72mm') %>% filter(level > -88)
-setwd("/home/dominik/Programowanie/R/SmallPortfolioProjects/BEngThesis/OSA/1um/A005-7_EHF-1 1µm 57mm/")
-d2 <- list.files() %>% str_subset(".*.CSV") %>% sapply(readOneFile) %>%
-  joinData('EHF-1 1µm 57mm') %>% filter(level > -70)
-setwd("/home/dominik/Programowanie/R/SmallPortfolioProjects/BEngThesis/OSA/6um/D5x_APG E26 6um 95mm/")
-d3 <- list.files() %>% str_subset(".*.CSV") %>% sapply(readOneFile) %>%
-  joinData('APG E26 6um 95mm') %>% filter(level > -105)
-setwd("/home/dominik/Programowanie/R/SmallPortfolioProjects/BEngThesis/OSA/6um/D6x_APG E26 6um 77mm/")
-d4 <- list.files() %>% str_subset(".*.CSV") %>% sapply(readOneFile) %>%
-  joinData('APG E26 6um 77mm') %>% filter(level > -70)
-setwd("/home/dominik/Programowanie/R/SmallPortfolioProjects/BEngThesis/OSA/3um/D10x_APG E26 3um 33mm/")
-d5 <- list.files() %>% str_subset(".*.CSV") %>% sapply(readOneFile) %>%
-  joinData('APG E26 3um 33mm') %>% filter(level > -82)
-setwd("/home/dominik/Programowanie/R/SmallPortfolioProjects/BEngThesis/OSA/3um/D20x_APG E26 3um 29mm/")
-d6 <- list.files() %>% str_subset(".*.CSV") %>% sapply(readOneFile) %>%
-  joinData('APG E26 3um 29mm')
+## 'EHF-1 1µm 72mm'
+d1 <- here("BEng Thesis/OSA/1um/A000-2_EHF-1 1µm 72mm") %>% 
+  list.files(full.names = TRUE, pattern = ".*.CSV") %>% 
+  map(readOneFile) %>% 
+  joinData() %>% 
+  filter(level > -88) %>% 
+  mutate(Series = 'EHF-1 1µm 72mm')
+
+## 'EHF-1 1µm 57mm'
+d2 <- 
+  here("BEng Thesis/OSA/1um/A005-7_EHF-1 1µm 57mm/") %>% 
+  list.files(full.names = TRUE, pattern = ".*.CSV") %>% 
+  map(readOneFile) %>% 
+  joinData() %>% 
+  filter(level > -70) %>% 
+  mutate(Series = 'EHF-1 1µm 57mm')
+
+## 'APG E26 6um 95mm'
+d3 <- 
+  here("BEng Thesis/OSA/6um/D5x_APG E26 6um 95mm/") %>% 
+  list.files(full.names = TRUE, pattern = ".*.CSV") %>% 
+  map(readOneFile) %>% 
+  joinData() %>%
+  filter(level > -105) %>% 
+  mutate(Series = 'E26 6um 95mm')
+
+d4 <- 
+  here("BEng Thesis/OSA/6um/D6x_APG E26 6um 77mm/") %>% 
+  list.files(full.names = TRUE, pattern = ".*.CSV") %>% 
+  map(readOneFile) %>% 
+  joinData() %>% 
+  filter(level > -70) %>% 
+  mutate(Series = 'E26 6um 77mm')
+
+d5 <- 
+  here("BEng Thesis/OSA/3um/D10x_APG E26 3um 33mm/") %>% 
+  list.files(full.names = TRUE, pattern = ".*.CSV") %>% 
+  map(readOneFile) %>% 
+  joinData() %>%
+  filter(level > -82) %>% 
+  mutate(Series = 'E26 3um 33mm')
+
+d6 <- 
+  here("BEng Thesis/OSA/3um/D20x_APG E26 3um 29mm/") %>% 
+  list.files(full.names = TRUE, pattern = ".*.CSV") %>% 
+  map(readOneFile) %>% 
+  joinData() %>% 
+  mutate(Series = 'E26 3um 29mm')
+
 many.data <- bind_rows(d1, d2, d3, d4, d5, d6)
 many.data$var = factor(many.data$var)
 # 
 # 
-setwd('/home/dominik/Programowanie/R/SmallPortfolioProjects/BEngThesis/')
+# setwd('./../BEng Thesis/')
 ```
 
 Overall Description
@@ -154,12 +205,16 @@ whole1 <- first.df %>%
        y = "transmitted power[dBm]", 
        colour = "Series")
 ggplotly(whole1) %>% config(displayModeBar = F) 
+
+# first.df %>% 
+#   hchart('spline', hcaes(x = wl, y = level, group = var))
 ```
 
 ### Above plot, zoomed at the area of interest:
 
 ```{r}
-whole2 <- first.df %>% filter(wl > 1330, wl < 1360) %>%
+whole2 <- first.df %>% 
+  filter(wl > 1330, wl < 1360) %>%
   ggplot(aes(x = wl, y = level, color = var)) + 
   geom_line(size = .2) + 
   theme_classic() + 
@@ -208,8 +263,8 @@ ggplotly(side2) %>% config(displayModeBar = F)
 Type II
 ===================================== 
 
-Column {data-width=600}
------------------------------------------------------------------------
+<!-- Column {data-width=600} -->
+<!-- ----------------------------------------------------------------------- -->
 
 
 ```{r}
@@ -225,5 +280,5 @@ ggplotly(many.plots) %>% config(displayModeBar = F)
 
 ```
 
-Column {data-width=400}
------------------------------------------------------------------------
+<!-- Column {data-width=400} -->
+<!-- ----------------------------------------------------------------------- -->
