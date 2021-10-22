@@ -186,6 +186,33 @@ Column {data-width=500}
 
 By placing a cappilary in a ferrofluid, we can alter its optical property using magnetic field. That way, and adding that each wavelength refracts at a slightly different angle, we can measure changes of the amount of  light that gets through our measuring element.  
 
+This change can be seen in a simplified example, in the chart below:
+
+```{r}
+df <- tibble(x = 1:400)
+
+add_y <- function(df, multi, limit, group) {
+  
+  rows <-nrow(df)
+  y <- seq(from = 0, to = limit, by = multi)
+  
+  while(length(y) < rows) {
+    y <- c(y, seq(from = limit, to = -limit, by = -multi), seq(from = -limit, to = limit, by = multi))
+  }
+  
+  df %>% mutate(y = y[1:rows], group = group)
+}
+
+tibble(multi = 1 + (1:4)/30, group = LETTERS[1:4]) %>%
+  pmap_dfr(df = df,
+           limit = 40,
+           add_y) %>%
+  group_by(group) %>% 
+  e_charts(x, timeline = TRUE) %>% 
+  e_line(y, symbol_size = 0) %>% 
+  e_timeline_opts(autoPlay = TRUE)
+```
+
 
 
 Type I
